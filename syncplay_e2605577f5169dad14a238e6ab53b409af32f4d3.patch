@@ -1,0 +1,119 @@
+diff --git a/syncplay/protocols.py b/syncplay/protocols.py
+index 7e780a5..32db56e 100755
+--- a/syncplay/protocols.py
++++ b/syncplay/protocols.py
+@@ -16,7 +16,8 @@ from syncplay.messages import getMessage
+ from syncplay.utils import meetsMinVersion
+ 
+ 
+-class JSONCommandProtocol(LineReceiver):
++# class JSONCommandProtocol(LineReceiver):
++class JSONCommandProtocol():
+     def handleMessages(self, messages):
+         for message in messages.items():
+             command = message[0]
+@@ -56,11 +57,12 @@ class JSONCommandProtocol(LineReceiver):
+ 
+     def sendMessage(self, dict_):
+         line = json.dumps(dict_)
+-        self.sendLine(line.encode('utf-8'))
++        # self.sendLine(line.encode('utf-8'))
+         self.showDebugMessage("client/server >> {}".format(line))
+ 
+     def drop(self):
+-        self.transport.loseConnection()
++        pass
++        # self.transport.loseConnection()
+ 
+     def dropWithError(self, error):
+         raise NotImplementedError()
+@@ -410,7 +412,7 @@ class SyncServerProtocol(JSONCommandProtocol):
+ 
+     def __hash__(self):
+         return hash('|'.join((
+-            self.transport.getPeer().host,
++            'localhost',#self.transport.getPeer().host,
+             str(id(self)),
+         )))
+ 
+@@ -426,7 +428,7 @@ class SyncServerProtocol(JSONCommandProtocol):
+         pass
+ 
+     def dropWithError(self, error):
+-        print(getMessage("client-drop-server-error").format(self.transport.getPeer().host, error))
++        # print(getMessage("client-drop-server-error").format(self.transport.getPeer().host, error))
+         self.sendError(error)
+         self.drop()
+ 
+@@ -495,6 +497,7 @@ class SyncServerProtocol(JSONCommandProtocol):
+             self._factory.addWatcher(self, username, roomName)
+             self._logged = True
+             self.sendHello(version)
++        print("completed handleHello")
+ 
+     @requireLogged
+     def handleChat(self, chatMessage):
+@@ -514,7 +517,7 @@ class SyncServerProtocol(JSONCommandProtocol):
+         hello = {}
+         username = self._watcher.getName()
+         hello["username"] = username
+-        userIp = self.transport.getPeer().host
++        userIp = None # self.transport.getPeer().host
+         room = self._watcher.getRoom()
+         if room:
+             hello["room"] = {"name": room.getName()}
+@@ -526,6 +529,7 @@ class SyncServerProtocol(JSONCommandProtocol):
+ 
+     @requireLogged
+     def handleSet(self, settings):
++        i = 0
+         for set_ in settings.items():
+             command = set_[0]
+             if command == "room":
+@@ -547,6 +551,11 @@ class SyncServerProtocol(JSONCommandProtocol):
+             elif command == "features":
+                 # TODO: Check
+                 self._watcher.setFeatures(set_[1])
++            else:
++                return
++            i+=1
++        if (i>0):
++            print("completed handleSet")
+ 
+     def sendSet(self, setting):
+         self.sendMessage({"Set": setting})
+@@ -676,16 +685,20 @@ class SyncServerProtocol(JSONCommandProtocol):
+             if "server" in ignore:
+                 if self.serverIgnoringOnTheFly == ignore["server"]:
+                     self.serverIgnoringOnTheFly = 0
++                    print("completed handleState")
+             if "client" in ignore:
+                 self.clientIgnoringOnTheFly = ignore["client"]
++                print("completed handleState")
+         if "playstate" in state:
+             position, paused, doSeek = self._extractStatePlaystateArguments(state)
++            print("completed handleState")
+         if "ping" in state:
+             latencyCalculation = state["ping"]["latencyCalculation"] if "latencyCalculation" in state["ping"] else 0
+             clientRtt = state["ping"]["clientRtt"] if "clientRtt" in state["ping"] else 0
+             self._clientLatencyCalculation = state["ping"]["clientLatencyCalculation"] if "clientLatencyCalculation" in state["ping"] else 0
+             self._clientLatencyCalculationArrivalTime = time.time()
+             self._pingService.receiveMessage(latencyCalculation, clientRtt)
++            print("completed handleState")
+         if self.serverIgnoringOnTheFly == 0:
+             self._watcher.updateState(position, paused, doSeek, self._pingService.getLastForwardDelay())
+ 
+@@ -707,11 +720,12 @@ class SyncServerProtocol(JSONCommandProtocol):
+                     self._factory.updateTLSContextFactory()
+                 if self._factory.options is not None:
+                     self.sendTLS({"startTLS": "true"})
+-                    self.transport.startTLS(self._factory.options)
++                    # self.transport.startTLS(self._factory.options)
+                 else:
+                     self.sendTLS({"startTLS": "false"})
+             else:
+                 self.sendTLS({"startTLS": "false"})
++            print("completed handleTLS")
+ 
+ 
+ class PingService(object):
