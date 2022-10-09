@@ -9,7 +9,7 @@ from twisted.internet import reactor
 from twisted.internet.endpoints import TCP4ServerEndpoint, TCP6ServerEndpoint
 from twisted.internet.error import CannotListenError
 
-from syncplay.server import SyncFactory, ConfigurationGetter
+from syncplay.syncplay.server import SyncFactory, ConfigurationGetter
 
 class ServerStatus: pass
 
