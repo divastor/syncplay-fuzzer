@@ -44,9 +44,6 @@ def fuzz(buf):
         commandName = ""
         c = Consumable(buf)
         command = c.getByte() % 7
-        # message = json.loads(buf[1:].decode())
-        # if type(message) is not dict:
-        #     return
 
         if command == 0:
             message = helloMsg(c)
