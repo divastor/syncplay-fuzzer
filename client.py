@@ -6,6 +6,7 @@ import json
 import sys
 from threading import Thread
 import readline
+import ast
 
 sys.path.insert(1, 'syncplay')
 from syncplay.protocols import PingService
@@ -15,8 +16,16 @@ SERVER_PROMPT="Server << "
 
 import signal
 def sigint_handler(sig, frame):
-    print("\n" + CLIENT_PROMPT, flush=True, end="")
+    pass
+    # print("\n" + CLIENT_PROMPT, flush=True, end="")
 signal.signal(signal.SIGINT, sigint_handler)
+
+def tryStopReactor():
+    try:
+        reactor.stop()
+        signal.raise_signal( signal.SIGINT )
+    except ReactorNotRunning:
+        pass
 
 class SyncplayClient(LineReceiver):
     def __init__(self):
@@ -25,7 +34,7 @@ class SyncplayClient(LineReceiver):
         self.getting_input = False
 
     def connectionMade(self):
-        # self.sendHello()
+        self.sendHello()
         self.thread = Thread(target = self.requestLine)
         self.thread.start()
 
@@ -61,27 +70,25 @@ class SyncplayClient(LineReceiver):
                 return True
         return False
     def requestLine(self):
-        while True:
-            self.getting_input = True
-            try:
+        try:
+            while True:
+                self.getting_input = True
                 line = input(CLIENT_PROMPT)
-            except EOFError:
-                try:
-                    reactor.stop()
-                    signal.raise_signal( signal.SIGINT )
-                except ReactorNotRunning:
-                    pass
-                return
-            self.getting_input = False
-            line = line.strip().replace("\'", "\"")
-            if line == "":
-                continue
-            # print(line)
-            try: 
-                messages = json.loads(line)
-                self.sendMessage(messages)
-            except json.decoder.JSONDecodeError:
-                print("Invalid formatting. Check https://syncplay.pl/about/protocol/.")
+                self.getting_input = False
+                line = line.strip()#.replace("\'", "\"").replace("\\", "\\\\")
+                if line == "":
+                    continue
+                # print(line)
+                try: 
+                    messages = ast.literal_eval(line)
+                    self.sendMessage(messages)
+                except (SyntaxError, ValueError) as e:
+                    # print(e)
+                    print("Invalid formatting. Check https://syncplay.pl/about/protocol/.")
+        except Exception as e:
+            print(e)
+            tryStopReactor()
+            return
     def lineReceived(self, line):
         line = line.decode('utf-8').strip()
         message = json.loads(line)
@@ -101,11 +108,13 @@ class SyncplayClientFactory(ClientFactory):
     def clientConnectionLost(self, connector, reason):
         print('\nLost connection.  Reason:\n', reason)
         # connector.connect()
-        reactor.stop()
+        tryStopReactor()
 
     def clientConnectionFailed(self, connector, reason):
         print('\nConnection failed. Reason:\n', reason)
-        reactor.stop()
+        tryStopReactor()
 
 reactor.connectTCP("localhost", 8999, SyncplayClientFactory())
 reactor.run()
+
+{'Set': {'room': {'name': 'room1'}, 'file': {}, 'controllerAuth': {'password': '\x00', 'room': {'name': 'room1'}}, 'ready': {'isReady': False}}}
