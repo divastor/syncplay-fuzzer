@@ -48,6 +48,7 @@ class SyncplayClient(LineReceiver):
                 'version': '1.7.0'
             }
         }
+        print(CLIENT_PROMPT + str(message_dict))
         self.sendMessage(message_dict)
     def sendMessage(self, msg):
         self.transport.write(json.dumps(msg).encode('utf-8') + b'\r\n')
