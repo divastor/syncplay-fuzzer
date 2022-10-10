@@ -1,37 +1,14 @@
-import time
 from pythonfuzz.main import PythonFuzz
 import json
 
 import sys
-from threading import *
+sys.path.insert(1, 'syncplay')
+from syncplay.server import SyncFactory, ConfigurationGetter
 
-from twisted.internet import reactor
-from twisted.internet.endpoints import TCP4ServerEndpoint, TCP6ServerEndpoint
-from twisted.internet.error import CannotListenError
+from consumable import *
+from params import *
 
-from syncplay.syncplay.server import SyncFactory, ConfigurationGetter
-
-class ServerStatus: pass
-
-def isListening6(f):
-    ServerStatus.listening6 = True
-
-def isListening4(f):
-    ServerStatus.listening4 = True
-
-def failed6(f):
-    ServerStatus.listening6 = False
-    print(f.value)
-    print("IPv6 listening failed.")
-
-def failed4(f):
-    ServerStatus.listening4 = False
-    if f.type is CannotListenError and ServerStatus.listening6:
-        pass
-    else:
-        print(f.value)
-        print("IPv4 listening failed.")
-
+# --- GLOBAL INITIALIZATION
 argsGetter = ConfigurationGetter()
 args = argsGetter.getConfiguration()
 factory = SyncFactory(
@@ -48,81 +25,66 @@ factory = SyncFactory(
             args.tls
         )
 protocol = factory.buildProtocol(1)
-
-def sendHello():
-    # while(True):
-        # try:
-    hello = {}
-    hello["username"] = "stevie"
-    # password = 'SYNCPLAY_PASSWORD'
-    # if password:
-    #     hello["password"] = password
-    room = "emp"
-    if room:
-        hello["room"] = {"name": room}
-    hello["version"] = "1.2.255"  # Used so newer clients work on 1.2.X server
-    hello["realversion"] = "1.7.0"
-    # hello["features"] = None
-    protocol.handleHello(hello)
-            # break
-        # except AttributeError:
-        #     continue
-
-
-
-def tcplisten():
-    endpoint6 = TCP6ServerEndpoint(reactor, int(args.port))
-    endpoint6.listen(factory).addCallbacks(isListening6, failed6)
-    endpoint4 = TCP4ServerEndpoint(reactor, int(args.port))
-    endpoint4.listen(factory).addCallbacks(isListening4, failed4)
-    if ServerStatus.listening6 or ServerStatus.listening4:
-        print("started")
-        tcp_thread = Thread(target=sendHello)
-        tcp_thread.start()
-        reactor.run()
-    else:
-        print("Unable to listen using either IPv4 and IPv6 protocols. Quitting the server now.")
-        sys.exit()
-sendHello()
+#  send first hello
+hello = {}
+hello["username"] = "stevie"
+room = "test"
+if room:
+    hello["room"] = {"name": room}
+hello["version"] = "1.2.255"  # Used so newer clients work on 1.2.X server
+hello["realversion"] = "1.7.0"
+protocol.handleHello(hello)
 
 @PythonFuzz
 def fuzz(buf):
     try:
-        if len(buf) < 2:
+        if len(buf) < 1:
             return
-        command = buf[0] % 7
-        message = json.loads(buf[1:].decode())
-        if type(message) is not dict:
-            return
-        
-        if command == 0: # "Hello":
+        message = None
+        commandName = ""
+        c = Consumable(buf)
+        command = c.getByte() % 7
+        # message = json.loads(buf[1:].decode())
+        # if type(message) is not dict:
+        #     return
+
+        if command == 0:
+            message = helloMsg(c)
+            commandName = "Hello"
             protocol.handleHello(message)
-        elif command == 1: # "Set":
+        elif command == 1:
+            message = setMsg(c)
+            commandName = "Set"
             protocol.handleSet(message)
-        elif command == 2: # "List":
+        elif command == 2:
+            message = {}
+            commandName = "List"
             protocol.handleList(message)
-        elif command == 3: # "State":
+        elif command == 3:
+            message = stateMsg(c)
+            commandName = "State"
             protocol.handleState(message)
-        elif command == 4: # "Error":
+        elif command == 4:
+            commandName = "Error"
             pass
             # protocol.handleError(message)
-        elif command == 5: # "Chat":
+        elif command == 5:
+            message = chatMsg(c)
+            commandName = "Chat"
             protocol.handleChat(message)
-        elif command == 6: # "TLS":
-            if "startTLS" not in message:
-                return
-            if not message["startTLS"]:
-                return
+        elif command == 6:
+            message = tlsMsg(c)
+            commandName = "TLS"
             protocol.handleTLS(message)
         else:
             print("nope")
             return
         # print(message)
-    except (json.decoder.JSONDecodeError, UnicodeDecodeError):
+    except (json.decoder.JSONDecodeError, UnicodeDecodeError, ConsumableException):
         pass
     except Exception as e:
         print(buf)
-        print("message = "+str(message))
+        print("message = "+str({commandName:message}))
         raise e
 
 
