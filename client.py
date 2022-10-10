@@ -1,6 +1,7 @@
 from twisted.internet import reactor
 from twisted.protocols.basic import LineReceiver
 from twisted.internet.protocol import ClientFactory
+from twisted.internet.error import ReactorNotRunning
 import json
 import sys
 from threading import Thread
@@ -9,10 +10,13 @@ import readline
 sys.path.insert(1, 'syncplay')
 from syncplay.protocols import PingService
 
-# import signal
-# def signal_handler(sig, frame):
-#     sys.exit(0)
-# signal.signal(signal.SIGINT, signal_handler)
+CLIENT_PROMPT="Client >> "
+SERVER_PROMPT="Server << "
+
+import signal
+def sigint_handler(sig, frame):
+    print("\n" + CLIENT_PROMPT, flush=True, end="")
+signal.signal(signal.SIGINT, sigint_handler)
 
 class SyncplayClient(LineReceiver):
     def __init__(self):
@@ -59,7 +63,15 @@ class SyncplayClient(LineReceiver):
     def requestLine(self):
         while True:
             self.getting_input = True
-            line = input("Client >> ")
+            try:
+                line = input(CLIENT_PROMPT)
+            except EOFError:
+                try:
+                    reactor.stop()
+                    signal.raise_signal( signal.SIGINT )
+                except ReactorNotRunning:
+                    pass
+                return
             self.getting_input = False
             line = line.strip().replace("\'", "\"")
             if line == "":
@@ -74,9 +86,9 @@ class SyncplayClient(LineReceiver):
         line = line.decode('utf-8').strip()
         message = json.loads(line)
         if not self.checkForPing(message):
-            print("\nServer << " + str(message))
+            print("\n" + SERVER_PROMPT + str(message))
             if self.getting_input:
-                print("Client >> ", flush=True, end="")
+                print(CLIENT_PROMPT, flush=True, end="")
 
 class SyncplayClientFactory(ClientFactory):
     def startedConnecting(self, connector):
@@ -87,11 +99,13 @@ class SyncplayClientFactory(ClientFactory):
         return SyncplayClient()
 
     def clientConnectionLost(self, connector, reason):
-        print('Lost connection.  Reason:\n', reason)
+        print('\nLost connection.  Reason:\n', reason)
         # connector.connect()
+        reactor.stop()
 
     def clientConnectionFailed(self, connector, reason):
-        print('Connection failed. Reason:', reason)
+        print('\nConnection failed. Reason:\n', reason)
+        reactor.stop()
 
 reactor.connectTCP("localhost", 8999, SyncplayClientFactory())
 reactor.run()

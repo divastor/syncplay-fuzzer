@@ -66,6 +66,6 @@ Server << {'Hello': {'username': 'divastor', 'room': {'name': 'test'}, 'version'
 Client >> 
 ```
 
-Press `Ctrl+C` then `Ctrl+D` to exit.
+Press `Ctrl+D` to exit.
 
 Visit https://syncplay.pl/about/protocol/ for more info on the kinds of messages that can be sent.
