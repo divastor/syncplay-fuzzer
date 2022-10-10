@@ -1,0 +1,49 @@
+diff --git a/syncplay/server.py b/syncplay/server.py
+index 21de91b..78aa0e7 100755
+--- a/syncplay/server.py
++++ b/syncplay/server.py
+@@ -115,6 +115,9 @@ class SyncFactory(Factory):
+         self.setWatcherRoom(watcher, roomName, asJoin=True)
+ 
+     def setWatcherRoom(self, watcher, roomName, asJoin=False):
++        room = watcher.getRoom()
++        if not room:
++            return
+         roomName = truncateText(roomName, constants.MAX_ROOM_NAME_LENGTH)
+         self._roomManager.moveWatcher(watcher, roomName)
+         if asJoin:
+@@ -122,7 +125,6 @@ class SyncFactory(Factory):
+         else:
+             self.sendRoomSwitchMessage(watcher)
+ 
+-        room = watcher.getRoom()
+         roomSetByName = room.getSetBy().getName() if room.getSetBy() else None
+         watcher.setPlaylist(roomSetByName, room.getPlaylist())
+         watcher.setPlaylistIndex(roomSetByName, room.getPlaylistIndex())
+@@ -171,6 +173,8 @@ class SyncFactory(Factory):
+ 
+     def authRoomController(self, watcher, password, roomBaseName=None):
+         room = watcher.getRoom()
++        if not room:
++            return
+         roomName = roomBaseName if roomBaseName else room.getName()
+         try:
+             success = RoomPasswordProvider.check(roomName, password, self._salt)
+@@ -194,6 +198,8 @@ class SyncFactory(Factory):
+ 
+     def setPlaylist(self, watcher, files):
+         room = watcher.getRoom()
++        if not room:
++            return
+         if room.canControl(watcher) and playlistIsValid(files):
+             watcher.getRoom().setPlaylist(files, watcher)
+             self._roomManager.broadcastRoom(watcher, lambda w: w.setPlaylist(watcher.getName(), files))
+@@ -203,6 +209,8 @@ class SyncFactory(Factory):
+ 
+     def setPlaylistIndex(self, watcher, index):
+         room = watcher.getRoom()
++        if not room:
++            return
+         if room.canControl(watcher):
+             watcher.getRoom().setPlaylistIndex(index, watcher)
+             self._roomManager.broadcastRoom(watcher, lambda w: w.setPlaylistIndex(watcher.getName(), index))
