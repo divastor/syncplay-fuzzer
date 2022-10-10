@@ -4,6 +4,7 @@ from twisted.internet.protocol import ClientFactory
 import json
 import sys
 from threading import Thread
+import readline
 
 sys.path.insert(1, 'syncplay')
 from syncplay.protocols import PingService
@@ -58,11 +59,8 @@ class SyncplayClient(LineReceiver):
     def requestLine(self):
         while True:
             self.getting_input = True
-            print("Client >> ", end="")
-            line = input()
+            line = input("Client >> ")
             self.getting_input = False
-            if line[:len("Client >> ")] == "Client >> ":
-                line = line[len("Client >> "):]
             line = line.strip().replace("\'", "\"")
             if line == "":
                 continue
