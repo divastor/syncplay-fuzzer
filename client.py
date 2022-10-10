@@ -20,7 +20,7 @@ class SyncplayClient(LineReceiver):
         self.getting_input = False
 
     def connectionMade(self):
-        self.sendHello()
+        # self.sendHello()
         self.thread = Thread(target = self.requestLine)
         self.thread.start()
 
