@@ -34,7 +34,7 @@ class SyncplayClient(LineReceiver):
         self.getting_input = False
 
     def connectionMade(self):
-        self.sendHello()
+        # self.sendHello()
         self.thread = Thread(target = self.requestLine)
         self.thread.start()
 
@@ -75,15 +75,13 @@ class SyncplayClient(LineReceiver):
                 self.getting_input = True
                 line = input(CLIENT_PROMPT)
                 self.getting_input = False
-                line = line.strip()#.replace("\'", "\"").replace("\\", "\\\\")
+                line = line.strip()
                 if line == "":
                     continue
-                # print(line)
                 try: 
                     messages = ast.literal_eval(line)
                     self.sendMessage(messages)
                 except (SyntaxError, ValueError) as e:
-                    # print(e)
                     print("Invalid formatting. Check https://syncplay.pl/about/protocol/.")
         except Exception as e:
             print(e)
@@ -116,5 +114,3 @@ class SyncplayClientFactory(ClientFactory):
 
 reactor.connectTCP("localhost", 8999, SyncplayClientFactory())
 reactor.run()
-
-{'Set': {'room': {'name': 'room1'}, 'file': {}, 'controllerAuth': {'password': '\x00', 'room': {'name': 'room1'}}, 'ready': {'isReady': False}}}
