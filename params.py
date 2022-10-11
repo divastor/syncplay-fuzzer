@@ -32,7 +32,7 @@ def getVersion(buf):
 def helloMsg(buf):
     msg = {}
     msg["username"]=getUsername(buf)
-    msg["room"] = {"name":buf.getString()}
+    msg["room"] = {"name":getRoom(buf)}
     msg["version"]=getVersion(buf)
     if buf.getBool():
         msg["password"]='pass1234'
