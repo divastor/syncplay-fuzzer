@@ -17,7 +17,6 @@ SERVER_PROMPT="Server << "
 import signal
 def sigint_handler(sig, frame):
     pass
-    # print("\n" + CLIENT_PROMPT, flush=True, end="")
 signal.signal(signal.SIGINT, sigint_handler)
 
 def tryStopReactor():

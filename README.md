@@ -2,6 +2,12 @@
 
 This is an attempt at a fuzzer for the syncplay server.
 
+You should first install the [`pythonfuzz`](https://gitlab.com/gitlab-org/security-products/analyzers/fuzzers/pythonfuzz) package with `pip3`:
+
+```bash
+pip3 install --extra-index-url https://gitlab.com/api/v4/projects/19904939/packages/pypi/simple pythonfuzz
+```
+
 The [syncplay_\<hash\>.patch](patches/syncplay_e2605577f5169dad14a238e6ab53b409af32f4d3.patch) should be applied at the checkout of syncplay that the hash denotes.
 
 ```bash
