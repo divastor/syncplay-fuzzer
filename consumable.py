@@ -9,8 +9,10 @@ class Consumable:
         self.bool_index = 0
         self.len = len(buf)
 
+    def remainingBytes(self):
+        return self.len - self.index
     def getInt(self):
-        if (self.len-1) - self.index < 4:
+        if self.remainingBytes() < 4:
             raise ConsumableException("Consumable length exceeded for int.")
         
         i = int.from_bytes(self.buf[self.index:self.index+4],'little')
